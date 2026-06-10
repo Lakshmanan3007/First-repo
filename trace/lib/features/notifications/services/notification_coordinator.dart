@@ -88,24 +88,33 @@ class NotificationCoordinator {
     if (remaining.isNegative) return null;
 
     final minutes = remaining.inMinutes;
-    if (minutes > preferences.deadlineWarningMinutes) return null;
 
-    final isCritical = minutes <= preferences.deadlineCriticalMinutes;
-    final timeLabel = isCritical
-        ? '$minutes minutes remaining.'
-        : '${remaining.inHours}h ${remaining.inMinutes.remainder(60)}m remaining.';
+    if (minutes <= preferences.tenMinutesRemainingMinutes) {
+      return TraceNotification(
+        id: 'deadline_${task.id}_critical',
+        type: TraceNotificationType.deadlineApproaching,
+        categoryLabel: 'CRITICAL',
+        message: 'Task deadline',
+        detail: '$minutes minutes remaining.',
+        style: TraceNotificationStyle.warning,
+        taskId: task.id,
+        icon: TraceNotificationIcon.calendar,
+      );
+    }
 
-    return TraceNotification(
-      id: 'deadline_${task.id}_${minutes ~/ 5}',
-      type: TraceNotificationType.deadlineApproaching,
-      categoryLabel: 'TEMPORAL UPDATE',
-      message: 'Deadline approaching',
-      detail: timeLabel,
-      style: isCritical
-          ? TraceNotificationStyle.warning
-          : TraceNotificationStyle.normal,
-      taskId: task.id,
-      icon: TraceNotificationIcon.calendar,
-    );
+    if (minutes <= preferences.oneHourRemainingMinutes) {
+      return TraceNotification(
+        id: 'deadline_${task.id}_warning',
+        type: TraceNotificationType.deadlineApproaching,
+        categoryLabel: 'TEMPORAL UPDATE',
+        message: 'Deadline approaching',
+        detail: '${remaining.inHours}h ${remaining.inMinutes.remainder(60)}m remaining.',
+        style: TraceNotificationStyle.normal,
+        taskId: task.id,
+        icon: TraceNotificationIcon.calendar,
+      );
+    }
+
+    return null;
   }
 }

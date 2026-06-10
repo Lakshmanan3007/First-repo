@@ -7,9 +7,12 @@ import '../../../core/theme/trace_spacing.dart';
 import '../../../core/theme/trace_typography.dart';
 import '../../../shared/widgets/trace_app_bar.dart';
 import '../../../shared/widgets/trace_button.dart';
+import '../../create_task/create_task_screen.dart';
+import '../domain/create_task_draft.dart';
 import '../domain/task.dart';
 import '../domain/task_status.dart';
 import '../utils/task_display_format.dart';
+import '../widgets/task_outcome_dialog.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   const TaskDetailScreen({super.key, required this.taskId});
@@ -46,9 +49,21 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   Future<void> _completeTask() async {
+    final note = await showTaskOutcomeDialog(
+      context,
+      title: 'Complete task?',
+      message: 'This will archive the task as completed.',
+      confirmLabel: 'Complete',
+      defaultNote: 'Task completed successfully.',
+    );
+    if (note == null || !mounted) return;
+
     setState(() => _isMutating = true);
     try {
-      await AppServices.instance.tasks.markCompleted(widget.taskId);
+      await AppServices.instance.tasks.markCompleted(
+        widget.taskId,
+        note: note,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } finally {
@@ -57,9 +72,21 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   Future<void> _failTask() async {
+    final note = await showTaskOutcomeDialog(
+      context,
+      title: 'Mark task as failed?',
+      message: 'This will move the task to the failed archive.',
+      confirmLabel: 'Mark Failed',
+      defaultNote: 'Unable to complete this task.',
+    );
+    if (note == null || !mounted) return;
+
     setState(() => _isMutating = true);
     try {
-      await AppServices.instance.tasks.markFailed(widget.taskId);
+      await AppServices.instance.tasks.markFailed(
+        widget.taskId,
+        note: note,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } finally {
@@ -68,31 +95,25 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   Future<void> _reattemptTask() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reattempt failed task?'),
-        content: const Text(
-          'This will reopen the task in the active queue with a refreshed deadline window.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Reattempt'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
+    final task = _task;
+    if (task == null) return;
 
     setState(() => _isMutating = true);
     try {
-      await AppServices.instance.tasks.reattemptFailed(widget.taskId);
+      final draft = CreateTaskDraft(
+        name: task.name,
+        description: task.description,
+        project: task.project,
+        priority: task.priority,
+        tags: task.tags,
+      );
+
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => CreateTaskScreen(draft: draft),
+        ),
+      );
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } finally {
@@ -398,6 +419,7 @@ class _ExecutionNotes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = task.description?.trim();
+    final outcome = task.outcomeNote?.trim();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -437,6 +459,22 @@ class _ExecutionNotes extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
+              if (outcome != null && outcome.isNotEmpty) ...[
+                const SizedBox(height: TraceSpacing.md),
+                Text(
+                  task.status == TaskStatus.completed
+                      ? 'COMPLETION NOTE'
+                      : 'FAILURE NOTE',
+                  style: TraceTypography.labelSMono.copyWith(
+                    color: TraceColors.secondary,
+                  ),
+                ),
+                const SizedBox(height: TraceSpacing.xs),
+                Text(
+                  outcome,
+                  style: TraceTypography.bodyMd.copyWith(height: 1.5),
+                ),
+              ],
               if (description?.isNotEmpty == true) ...[
                 const SizedBox(height: TraceSpacing.lg),
                 Container(

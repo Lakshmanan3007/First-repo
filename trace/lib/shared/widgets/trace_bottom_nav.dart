@@ -79,9 +79,9 @@ class TraceBottomNav extends StatelessWidget {
                     color: TraceColors.primary,
                     boxShadow: [
                       BoxShadow(
-                        color: TraceColors.primary.withValues(alpha: 0.25),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
+                        color: TraceColors.primary.withValues(alpha: 0.18),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -119,7 +119,7 @@ class _NavItem extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(TraceSpacing.radiusDefault),
+      borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
       child: SizedBox(
         width: 64,
         child: Column(

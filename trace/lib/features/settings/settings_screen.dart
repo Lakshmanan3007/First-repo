@@ -4,8 +4,10 @@ import '../../core/di/app_services.dart';
 import '../../core/theme/trace_colors.dart';
 import '../../core/theme/trace_spacing.dart';
 import '../../core/theme/trace_typography.dart';
+import '../about/about_screen.dart';
 import '../notifications/domain/notification_preferences.dart';
 import '../notifications/presentation/notifications_preview_screen.dart';
+import 'domain/app_settings.dart';
 import 'widgets/settings_section.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -18,7 +20,6 @@ class SettingsScreen extends StatefulWidget {
 class SettingsScreenState extends State<SettingsScreen> {
   NotificationPreferences _notificationPrefs =
       NotificationPreferences.defaults;
-  bool _use24Hour = true;
   bool _isLoading = true;
 
   bool get _servicesReady {
@@ -53,20 +54,13 @@ class SettingsScreenState extends State<SettingsScreen> {
     setState(() => _notificationPrefs = prefs);
   }
 
-  String get _timezoneLabel {
-    final now = DateTime.now();
-    final hours = now.timeZoneOffset.inHours;
-    final sign = hours >= 0 ? '+' : '-';
-    return 'UTC $sign${hours.abs().toString().padLeft(2, '0')}:00';
-  }
-
   Future<void> _clearLocalCache() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear local cache?'),
+        title: const Text('Reset Application Data?'),
         content: const Text(
-          'This removes all tasks and notification history stored on this device.',
+          'This removes all tasks, notifications, and settings. This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -75,7 +69,8 @@ class SettingsScreenState extends State<SettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Clear'),
+            style: TextButton.styleFrom(foregroundColor: TraceColors.error),
+            child: const Text('Reset'),
           ),
         ],
       ),
@@ -87,7 +82,7 @@ class SettingsScreenState extends State<SettingsScreen> {
     await AppServices.instance.notifications.resetState();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Local cache cleared')),
+      const SnackBar(content: Text('Application data reset')),
     );
   }
 
@@ -97,223 +92,193 @@ class SettingsScreenState extends State<SettingsScreen> {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        TraceSpacing.marginMobile,
-        TraceSpacing.lg,
-        TraceSpacing.marginMobile,
-        TraceSpacing.xl,
-      ),
-      children: [
-        Text('Settings', style: TraceTypography.headlineMd),
-        const SizedBox(height: TraceSpacing.xs),
-        Text(
-          'Configure your operational environment.',
-          style: TraceTypography.bodyMd.copyWith(color: TraceColors.secondary),
-        ),
-        const SizedBox(height: TraceSpacing.lg),
-        SettingsSection(
-          icon: Icons.palette_outlined,
-          title: 'Appearance',
-          child: Padding(
-            padding: const EdgeInsets.all(TraceSpacing.md),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ValueListenableBuilder(
+      valueListenable: AppServices.instance.settings,
+      builder: (context, settings, child) {
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(
+            TraceSpacing.marginMobile,
+            TraceSpacing.lg,
+            TraceSpacing.marginMobile,
+            TraceSpacing.xl,
+          ),
+          children: [
+            Text('Settings', style: TraceTypography.headlineMd),
+            const SizedBox(height: TraceSpacing.xs),
+            Text(
+              'Configure your operational environment.',
+              style: TraceTypography.bodyMd.copyWith(color: TraceColors.secondary),
+            ),
+            const SizedBox(height: TraceSpacing.lg),
+            SettingsSection(
+              icon: Icons.palette_outlined,
+              title: 'Appearance',
+              child: Padding(
+                padding: const EdgeInsets.all(TraceSpacing.md),
+                child: Column(
                   children: [
-                    Text('Theme', style: TraceTypography.bodyMd),
                     Row(
-                      children: [
-                        _ThemeChip(label: 'LIGHT', selected: true),
-                        const SizedBox(width: TraceSpacing.xs),
-                        _ThemeChip(
-                          label: 'DARK',
-                          selected: false,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Dark theme coming soon'),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: TraceSpacing.lg),
-        SettingsSection(
-          icon: Icons.notifications_outlined,
-          title: 'Notifications',
-          child: Padding(
-            padding: const EdgeInsets.all(TraceSpacing.md),
-            child: Column(
-              children: [
-                SettingsToggleRow(
-                  title: 'Push Notifications',
-                  subtitle: 'TASK REMINDERS + ALERTS',
-                  value: _notificationPrefs.pushEnabled,
-                  onChanged: (value) => _saveNotificationPrefs(
-                    _notificationPrefs.copyWith(pushEnabled: value),
-                  ),
-                ),
-                const Divider(height: TraceSpacing.lg),
-                SettingsToggleRow(
-                  title: 'Email Digests',
-                  subtitle: 'WEEKLY PERFORMANCE OVERVIEW',
-                  value: _notificationPrefs.emailDigests,
-                  onChanged: (value) => _saveNotificationPrefs(
-                    _notificationPrefs.copyWith(emailDigests: value),
-                  ),
-                ),
-                const SizedBox(height: TraceSpacing.md),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const NotificationsPreviewScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text('PREVIEW ALERT STYLES'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: TraceSpacing.lg),
-        SettingsSection(
-          icon: Icons.schedule_outlined,
-          title: 'Time Settings',
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(TraceSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('TIMEZONE', style: TraceTypography.labelSMono),
-                        const SizedBox(height: TraceSpacing.xs),
-                        Text(_timezoneLabel, style: TraceTypography.bodyMd),
-                      ],
-                    ),
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(TraceSpacing.md),
-                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Text('Theme', style: TraceTypography.bodyMd),
+                        Row(
                           children: [
-                            Text('FORMAT', style: TraceTypography.labelSMono),
-                            const SizedBox(height: TraceSpacing.xs),
-                            Text(
-                              _use24Hour ? '24-HOUR' : '12-HOUR',
-                              style: TraceTypography.bodyMd,
+                            _ThemeChip(
+                              label: 'LIGHT',
+                              selected: settings.themeMode == AppThemeMode.light,
+                              onTap: () =>
+                                  AppServices.instance.settings
+                                      .updateThemeMode(AppThemeMode.light),
+                            ),
+                            const SizedBox(width: TraceSpacing.xs),
+                            _ThemeChip(
+                              label: 'DARK',
+                              selected: settings.themeMode == AppThemeMode.dark,
+                              onTap: () =>
+                                  AppServices.instance.settings
+                                      .updateThemeMode(AppThemeMode.dark),
+                            ),
+                            const SizedBox(width: TraceSpacing.xs),
+                            _ThemeChip(
+                              label: 'AUTO',
+                              selected: settings.themeMode == AppThemeMode.system,
+                              onTap: () =>
+                                  AppServices.instance.settings
+                                      .updateThemeMode(AppThemeMode.system),
                             ),
                           ],
                         ),
-                        Switch(
-                          value: _use24Hour,
-                          onChanged: (value) =>
-                              setState(() => _use24Hour = value),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: TraceSpacing.lg),
+            SettingsSection(
+              icon: Icons.schedule_outlined,
+              title: 'Time Format',
+              child: Padding(
+                padding: const EdgeInsets.all(TraceSpacing.md),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('FORMAT', style: TraceTypography.labelSMono),
+                        const SizedBox(height: TraceSpacing.xs),
+                        Text(
+                          settings.use24Hour ? '24-HOUR' : '12-HOUR',
+                          style: TraceTypography.bodyMd,
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: TraceSpacing.lg),
-        SettingsSection(
-          icon: Icons.storage_outlined,
-          title: 'Storage / Local Data',
-          child: Padding(
-            padding: const EdgeInsets.all(TraceSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'LOCAL CACHE USAGE',
-                      style: TraceTypography.labelMMMono,
-                    ),
-                    Text(
-                      _servicesReady
-                          ? '${AppServices.instance.tasks.getAll().length} TASKS'
-                          : '—',
-                      style: TraceTypography.labelMMMono.copyWith(
-                        color: TraceColors.secondary,
-                      ),
+                    Switch(
+                      value: settings.use24Hour,
+                      onChanged: (value) =>
+                          AppServices.instance.settings.updateUse24Hour(value),
                     ),
                   ],
                 ),
-                const SizedBox(height: TraceSpacing.sm),
-                const LinearProgressIndicator(
-                  value: 0.25,
-                  minHeight: 4,
-                  color: TraceColors.primary,
-                  backgroundColor: TraceColors.surfaceContainer,
-                ),
-                const SizedBox(height: TraceSpacing.lg),
-                OutlinedButton(
-                  onPressed: _servicesReady ? _clearLocalCache : null,
-                  child: const Text('CLEAR LOCAL CACHE'),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: TraceSpacing.lg),
-        SettingsSection(
-          icon: Icons.info_outline,
-          title: 'About TRACE',
-          child: Padding(
-            padding: const EdgeInsets.all(TraceSpacing.md),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: TraceSpacing.lg),
+            SettingsSection(
+              icon: Icons.notifications_outlined,
+              title: 'Notifications',
+              child: Padding(
+                padding: const EdgeInsets.all(TraceSpacing.md),
+                child: Column(
                   children: [
-                    Text('Version', style: TraceTypography.bodyMd),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: TraceSpacing.sm,
-                        vertical: TraceSpacing.xs,
+                    SettingsToggleRow(
+                      title: 'Push Notifications',
+                      subtitle: 'TASK REMINDERS + ALERTS',
+                      value: _notificationPrefs.pushEnabled,
+                      onChanged: (value) => _saveNotificationPrefs(
+                        _notificationPrefs.copyWith(pushEnabled: value),
                       ),
-                      decoration: BoxDecoration(
-                        color: TraceColors.surfaceContainer,
-                        border: Border.all(color: TraceColors.surfaceContainer),
-                      ),
-                      child: Text(
-                        'v1.0.0-REL',
-                        style: TraceTypography.labelMMMono.copyWith(
-                          color: TraceColors.secondary,
+                    ),
+                    const SizedBox(height: TraceSpacing.md),
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const NotificationsPreviewScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('PREVIEW ALERT STYLES'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: TraceSpacing.lg),
+            SettingsSection(
+              icon: Icons.storage_outlined,
+              title: 'Data Management',
+              child: Padding(
+                padding: const EdgeInsets.all(TraceSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'TASKS STORED',
+                          style: TraceTypography.labelMMMono,
                         ),
+                        Text(
+                          _servicesReady
+                              ? '${AppServices.instance.tasks.getAll().length} TASKS'
+                              : '—',
+                          style: TraceTypography.labelMMMono.copyWith(
+                            color: TraceColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: TraceSpacing.lg),
+                    OutlinedButton(
+                      onPressed: _servicesReady ? _clearLocalCache : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: TraceColors.error,
+                        side: const BorderSide(color: TraceColors.error),
                       ),
+                      child: const Text('RESET APPLICATION DATA'),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: TraceSpacing.lg),
+            SettingsSection(
+              icon: Icons.info_outline,
+              title: 'About TRACE',
+              child: Padding(
+                padding: const EdgeInsets.all(TraceSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const AboutScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('VIEW ABOUT & LICENSE'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

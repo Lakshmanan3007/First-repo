@@ -46,12 +46,14 @@ class TasksSearchBar extends StatelessWidget {
             color: TraceColors.secondary,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+            borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
-            borderSide: const BorderSide(color: TraceColors.outlineVariant),
+            borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
+            borderSide: BorderSide(
+              color: TraceColors.outlineVariant.withValues(alpha: 0.8),
+            ),
           ),
         ),
       ),

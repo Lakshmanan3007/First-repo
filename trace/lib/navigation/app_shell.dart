@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../core/di/app_services.dart';
 import '../../features/activity/activity_screen.dart';
 import '../../features/create_task/create_task_screen.dart';
 import '../../features/notifications/widgets/notification_overlay_host.dart';
 import '../../features/schedule/schedule_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/tasks/tasks_screen.dart';
-import '../../core/di/app_services.dart';
+import '../../shared/widgets/profile_sheet.dart';
 import '../../shared/widgets/trace_app_bar.dart';
 import '../../shared/widgets/trace_bottom_nav.dart';
 
@@ -40,6 +41,15 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
+  int get _tabIndex {
+    return switch (_currentTab) {
+      TraceNavTab.tasks => 0,
+      TraceNavTab.plan => 1,
+      TraceNavTab.stats => 2,
+      TraceNavTab.sys => 3,
+    };
+  }
+
   Future<void> _evaluateNotifications() async {
     try {
       await AppServices.instance.tasks.syncLifecycleStatuses();
@@ -53,15 +63,6 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  int get _tabIndex {
-    return switch (_currentTab) {
-      TraceNavTab.tasks => 0,
-      TraceNavTab.plan => 1,
-      TraceNavTab.stats => 2,
-      TraceNavTab.sys => 3,
-    };
-  }
-
   void _onTabSelected(TraceNavTab tab) {
     setState(() => _currentTab = tab);
     if (tab == TraceNavTab.plan) {
@@ -72,6 +73,19 @@ class _AppShellState extends State<AppShell> {
       _settingsKey.currentState?.reload();
     }
     _evaluateNotifications();
+  }
+
+  void _openSettings() {
+    setState(() => _currentTab = TraceNavTab.sys);
+    _settingsKey.currentState?.reload();
+  }
+
+  void _showProfileSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => ProfileSheet(onOpenSettings: _openSettings),
+    );
   }
 
   Future<void> _onCreatePressed() async {
@@ -88,7 +102,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TraceAppBar(),
+      appBar: TraceAppBar(onProfilePressed: _showProfileSheet),
       body: NotificationOverlayHost(
         key: _notificationHostKey,
         child: IndexedStack(

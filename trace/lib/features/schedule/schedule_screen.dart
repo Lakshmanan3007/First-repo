@@ -20,10 +20,10 @@ class ScheduleScreen extends StatefulWidget {
 
 class ScheduleScreenState extends State<ScheduleScreen> {
   DateTime _selectedDay = SchedulePlanner.dateOnly(DateTime.now());
-  ScheduleDayPlan _plan = const ScheduleDayPlan(
-    archived: [],
-    inFocus: [],
-    queue: [],
+  ScheduleDayPlan _plan = ScheduleDayPlan(
+    timeSections: [],
+    completed: [],
+    failed: [],
     tomorrowPreview: [],
   );
   bool _isLoading = true;
@@ -49,10 +49,10 @@ class ScheduleScreenState extends State<ScheduleScreen> {
     if (!_servicesReady) {
       if (!mounted) return;
       setState(() {
-        _plan = const ScheduleDayPlan(
-          archived: [],
-          inFocus: [],
-          queue: [],
+        _plan = ScheduleDayPlan(
+          timeSections: [],
+          completed: [],
+          failed: [],
           tomorrowPreview: [],
         );
         _isLoading = false;

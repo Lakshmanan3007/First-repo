@@ -7,8 +7,9 @@ import '../../core/theme/trace_typography.dart';
 import '../tasks/presentation/task_detail_screen.dart';
 import 'domain/activity_event.dart';
 import 'utils/activity_journal_builder.dart';
-import 'widgets/activity_day_section.dart';
-import 'widgets/activity_metrics_card.dart';
+import 'widgets/activity_summary_card.dart';
+import 'widgets/activity_timeline_section.dart';
+import 'widgets/activity_transitions_section.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -19,15 +20,14 @@ class ActivityScreen extends StatefulWidget {
 
 class ActivityScreenState extends State<ActivityScreen> {
   ActivityJournal _journal = const ActivityJournal(
-    sessionId: '0x0000',
-    versionLabel: 'v1.0.0_STABLE',
-    metrics: ActivityMetrics7d(
-      loadJobs: 0,
-      healthPercent: 100,
-      uptimeHours: 0,
-      syncOk: true,
+    summary: ActivityTodaySummary(
+      currentCount: 0,
+      completedToday: 0,
+      failedToday: 0,
+      upcomingToday: 0,
     ),
-    dayGroups: [],
+    timeline: [],
+    upcomingTransitions: [],
   );
   bool _isLoading = true;
 
@@ -64,10 +64,7 @@ class ActivityScreenState extends State<ActivityScreen> {
     });
   }
 
-  Future<void> _openEvent(ActivityEvent event) async {
-    final taskId = event.taskId;
-    if (taskId == null) return;
-
+  Future<void> _openTask(String taskId) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => TaskDetailScreen(taskId: taskId),
@@ -96,69 +93,31 @@ class ActivityScreenState extends State<ActivityScreen> {
           TraceSpacing.xl,
         ),
         children: [
-          _OperationalHeader(
-            sessionId: _journal.sessionId,
-            versionLabel: _journal.versionLabel,
+          Text('Activity', style: TraceTypography.headlineMd),
+          const SizedBox(height: TraceSpacing.xs),
+          Text(
+            'What happened, what is happening, and what comes next.',
+            style: TraceTypography.bodyMd.copyWith(color: TraceColors.secondary),
           ),
           const SizedBox(height: TraceSpacing.lg),
-          ActivityMetricsCard(metrics: _journal.metrics),
-          const SizedBox(height: TraceSpacing.xl),
+          ActivitySummaryCard(summary: _journal.summary),
+          const SizedBox(height: TraceSpacing.lg),
+          ActivityTransitionsSection(
+            transitions: _journal.upcomingTransitions,
+            onTap: (transition) => _openTask(transition.taskId),
+          ),
           if (_journal.isEmpty)
             _EmptyJournal()
           else
-            ..._journal.dayGroups.map((group) {
-              return ActivityDaySection(
-                group: group,
-                muted: !group.isToday,
-                onEventTap: _openEvent,
-              );
-            }),
-        ],
-      ),
-    );
-  }
-}
-
-class _OperationalHeader extends StatelessWidget {
-  const _OperationalHeader({
-    required this.sessionId,
-    required this.versionLabel,
-  });
-
-  final String sessionId;
-  final String versionLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: TraceSpacing.md),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: TraceColors.primary)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'MEM_SESSION // $sessionId',
-            style: TraceTypography.labelMMMono.copyWith(
-              letterSpacing: 0.12 * 12,
-            ),
-          ),
-          const SizedBox(height: TraceSpacing.xs),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text('Operational Log', style: TraceTypography.headlineMd),
-              const Spacer(),
-              Text(
-                versionLabel,
-                style: TraceTypography.labelSMono.copyWith(
-                  color: TraceColors.outline,
-                ),
+            ..._journal.timeline.map(
+              (period) => ActivityTimelineSection(
+                period: period,
+                onEventTap: (event) {
+                  final taskId = event.taskId;
+                  if (taskId != null) _openTask(taskId);
+                },
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );
@@ -175,13 +134,13 @@ class _EmptyJournal extends StatelessWidget {
           Icon(
             Icons.history_edu_outlined,
             size: 40,
-            color: TraceColors.secondary.withValues(alpha: 0.6),
+            color: TraceColors.secondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: TraceSpacing.md),
-          Text('No journal entries yet', style: TraceTypography.headlineSm),
+          Text('No activity yet', style: TraceTypography.headlineSm),
           const SizedBox(height: TraceSpacing.sm),
           Text(
-            'Create and complete tasks to build your operational memory log.',
+            'Create and complete tasks to build your operational journal.',
             style: TraceTypography.bodyMd.copyWith(color: TraceColors.secondary),
             textAlign: TextAlign.center,
           ),

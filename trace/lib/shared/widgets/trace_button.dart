@@ -74,7 +74,7 @@ class TraceTaskChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: TraceSpacing.sm),
       decoration: BoxDecoration(
         color: backgroundColor ?? TraceColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(TraceSpacing.radiusDefault),
+        borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
         border: Border.all(
           color: borderColor ?? TraceColors.outlineVariant,
         ),

@@ -15,12 +15,7 @@ class TaskStatusTabs extends StatelessWidget {
   final TaskStatus selected;
   final ValueChanged<TaskStatus> onSelected;
 
-  static const _tabs = [
-    TaskStatus.current,
-    TaskStatus.upcoming,
-    TaskStatus.completed,
-    TaskStatus.failed,
-  ];
+  static const _tabs = TaskStatus.tabOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -38,29 +33,35 @@ class TaskStatusTabs extends StatelessWidget {
             final isSelected = status == selected;
             return Padding(
               padding: const EdgeInsets.only(right: TraceSpacing.md),
-              child: InkWell(
-                onTap: () => onSelected(status),
-                child: Container(
-                  padding: const EdgeInsets.only(bottom: TraceSpacing.sm),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isSelected
-                            ? TraceColors.primary
-                            : Colors.transparent,
-                        width: 2,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => onSelected(status),
+                  borderRadius: BorderRadius.circular(TraceSpacing.radiusDefault),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.only(bottom: TraceSpacing.sm),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: isSelected
+                              ? TraceColors.primary
+                              : Colors.transparent,
+                          width: 2,
+                        ),
                       ),
                     ),
-                  ),
-                  child: Text(
-                    status.label,
-                    style: TraceTypography.labelMMMono.copyWith(
-                      fontSize: 12,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected
-                          ? TraceColors.primary
-                          : TraceColors.secondary,
+                    child: Text(
+                      status.label,
+                      style: TraceTypography.labelMMMono.copyWith(
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected
+                            ? TraceColors.primary
+                            : TraceColors.secondary,
+                      ),
                     ),
                   ),
                 ),

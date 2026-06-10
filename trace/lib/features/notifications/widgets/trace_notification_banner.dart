@@ -31,14 +31,14 @@ class TraceNotificationBanner extends StatelessWidget {
         color: TraceColors.surfaceContainerLowest,
         elevation: 0,
         shadowColor: TraceColors.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+        borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+          borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
           child: Container(
             padding: const EdgeInsets.all(TraceSpacing.md),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+              borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
               border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(

@@ -5,6 +5,16 @@ import 'package:trace/features/tasks/domain/task_priority.dart';
 import 'package:trace/features/tasks/domain/task_status.dart';
 
 void main() {
+  test('task without start time enters current immediately', () {
+    final now = DateTime(2026, 5, 31, 12);
+    final status = Task.resolveInitialStatus(
+      startTime: null,
+      deadline: now.add(const Duration(days: 1)),
+      now: now,
+    );
+    expect(status, TaskStatus.current);
+  });
+
   test('upcoming transitions to current when start time arrives', () {
     final now = DateTime(2026, 5, 31, 12);
     final task = Task(

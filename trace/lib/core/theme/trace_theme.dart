@@ -31,7 +31,19 @@ abstract final class TraceTheme {
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       dividerColor: TraceColors.surfaceContainerHigh,
-      splashFactory: InkRipple.splashFactory,
+      splashFactory: InkSparkle.splashFactory,
+      highlightColor: TraceColors.primary.withValues(alpha: 0.04),
+      hoverColor: TraceColors.primary.withValues(alpha: 0.02),
+      cardTheme: CardThemeData(
+        color: TraceColors.surfaceContainerLowest,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
+          side: BorderSide(
+            color: TraceColors.surfaceContainerHigh.withValues(alpha: 0.9),
+          ),
+        ),
+      ),
       textTheme: TextTheme(
         displayLarge: TraceTypography.displayLg,
         headlineMedium: TraceTypography.headlineMd,
@@ -85,7 +97,112 @@ abstract final class TraceTheme {
             vertical: TraceSpacing.md,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(TraceSpacing.radiusDefault),
+            borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
+          ),
+          textStyle: TraceTypography.labelMMMono,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: TraceColors.primary,
+          textStyle: TraceTypography.bodyMd.copyWith(color: TraceColors.primary),
+        ),
+      ),
+    );
+  }
+
+  static ThemeData get dark {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+      colorScheme: ColorScheme.dark(
+        primary: TraceColors.primary,
+        onPrimary: const Color(0xFFFAFAFA),
+        secondary: const Color(0xFF9C9D9D),
+        onSecondary: const Color(0xFFFAFAFA),
+        surface: const Color(0xFF141414),
+        onSurface: const Color(0xFFE8E8E8),
+        error: TraceColors.error,
+        onError: const Color(0xFFFAFAFA),
+        outline: const Color(0xFF3A3A3A),
+        outlineVariant: const Color(0xFF2A2A2A),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0A0A0A),
+        foregroundColor: TraceColors.primary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+      ),
+      dividerColor: const Color(0xFF2A2A2A),
+      splashFactory: InkSparkle.splashFactory,
+      highlightColor: TraceColors.primary.withValues(alpha: 0.08),
+      hoverColor: TraceColors.primary.withValues(alpha: 0.04),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1A1A1A),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
+          side: const BorderSide(
+            color: Color(0xFF2A2A2A),
+          ),
+        ),
+      ),
+      textTheme: TextTheme(
+        displayLarge: TraceTypography.displayLg.copyWith(color: const Color(0xFFE8E8E8)),
+        headlineMedium: TraceTypography.headlineMd.copyWith(color: const Color(0xFFE8E8E8)),
+        headlineSmall: TraceTypography.headlineSm.copyWith(color: const Color(0xFFE8E8E8)),
+        titleMedium: TraceTypography.titleS.copyWith(color: const Color(0xFFE8E8E8)),
+        bodyLarge: TraceTypography.bodyLg.copyWith(color: const Color(0xFFDDDDDD)),
+        bodyMedium: TraceTypography.bodyMd.copyWith(color: const Color(0xFFDDDDDD)),
+        labelMedium: TraceTypography.labelMd.copyWith(color: const Color(0xFF9C9D9D)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1A1A1A),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: TraceSpacing.md,
+          vertical: TraceSpacing.sm,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+          borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+          borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+          borderSide: const BorderSide(color: TraceColors.primary, width: 1),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: TraceColors.primary,
+          foregroundColor: const Color(0xFFFAFAFA),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(
+            horizontal: TraceSpacing.lg,
+            vertical: TraceSpacing.md,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
+          ),
+          textStyle: TraceTypography.titleS.copyWith(color: const Color(0xFFFAFAFA)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: TraceColors.primary,
+          side: const BorderSide(color: TraceColors.primary),
+          padding: const EdgeInsets.symmetric(
+            horizontal: TraceSpacing.lg,
+            vertical: TraceSpacing.md,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TraceSpacing.radiusXl),
           ),
           textStyle: TraceTypography.labelMMMono,
         ),

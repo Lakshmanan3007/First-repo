@@ -5,13 +5,16 @@ import '../../core/di/app_services.dart';
 import '../../core/theme/trace_colors.dart';
 import '../../core/theme/trace_spacing.dart';
 import '../../core/theme/trace_typography.dart';
-import '../../features/tasks/domain/task_constants.dart';
-import '../../features/tasks/domain/task_priority.dart';
+import '../tasks/domain/create_task_draft.dart';
+import '../tasks/domain/task_constants.dart';
+import '../tasks/domain/task_priority.dart';
 import '../../shared/widgets/trace_app_bar.dart';
 import '../../shared/widgets/trace_button.dart';
 
 class CreateTaskScreen extends StatefulWidget {
-  const CreateTaskScreen({super.key});
+  const CreateTaskScreen({super.key, this.draft});
+
+  final CreateTaskDraft? draft;
 
   @override
   State<CreateTaskScreen> createState() => _CreateTaskScreenState();
@@ -22,19 +25,55 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _tagsController = TextEditingController();
+  final _newProjectController = TextEditingController();
 
   DateTime? _startTime;
   DateTime? _deadline;
-  String _selectedProject = TaskConstants.defaultProject;
-  TaskPriority _priority = TaskPriority.high;
-  final List<String> _tags = ['ENGINEERING', 'URGENT'];
+  late String _selectedProject;
+  late TaskPriority _priority;
+  final List<String> _tags = [];
+  List<String> _projects = TaskConstants.defaultProjects;
+  List<String> _knownTags = [];
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = widget.draft;
+    if (draft != null) {
+      _nameController.text = draft.name ?? '';
+      _descriptionController.text = draft.description ?? '';
+      _selectedProject = draft.project ?? TaskConstants.defaultProject;
+      _priority = draft.priority ?? TaskPriority.medium;
+      _tags.addAll(draft.tags);
+    } else {
+      _selectedProject = TaskConstants.defaultProject;
+      _priority = TaskPriority.medium;
+    }
+    _loadTaxonomy();
+  }
+
+  void _loadTaxonomy() {
+    try {
+      final tasks = AppServices.instance.tasks.getAll();
+      setState(() {
+        _projects = AppServices.instance.taxonomy.allProjects(tasks: tasks);
+        _knownTags = AppServices.instance.taxonomy.allTags(tasks: tasks);
+        if (!_projects.contains(_selectedProject)) {
+          _projects = [..._projects, _selectedProject]..sort();
+        }
+      });
+    } catch (_) {
+      _projects = TaskConstants.defaultProjects;
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
     _tagsController.dispose();
+    _newProjectController.dispose();
     super.dispose();
   }
 
@@ -45,7 +84,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   Future<void> _pickDateTime({required bool deadline}) async {
     final now = DateTime.now();
-    final initial = deadline ? (_deadline ?? now.add(const Duration(hours: 1))) : (_startTime ?? now);
+    final initial = deadline
+        ? (_deadline ?? now.add(const Duration(hours: 1)))
+        : (_startTime ?? now);
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -77,12 +118,48 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     });
   }
 
+  Future<void> _createProject() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        _newProjectController.clear();
+        return AlertDialog(
+          title: const Text('Create New Project'),
+          content: TextField(
+            controller: _newProjectController,
+            decoration: const InputDecoration(
+              hintText: 'Project name',
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(context, _newProjectController.text.trim()),
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (name == null || name.isEmpty) return;
+
+    await AppServices.instance.taxonomy.addProject(name);
+    _loadTaxonomy();
+    setState(() => _selectedProject = name);
+  }
+
   void _setPriority(TaskPriority priority) {
     setState(() => _priority = priority);
   }
 
-  void _addTag() {
-    final raw = _tagsController.text.trim();
+  void _addTag([String? rawTag]) {
+    final raw = (rawTag ?? _tagsController.text).trim();
     if (raw.isEmpty) return;
     final normalized = raw.replaceAll('#', '').toUpperCase();
     if (normalized.isEmpty || _tags.contains(normalized)) {
@@ -107,10 +184,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       _startTime = null;
       _deadline = null;
       _selectedProject = TaskConstants.defaultProject;
-      _priority = TaskPriority.high;
-      _tags
-        ..clear()
-        ..addAll(['ENGINEERING', 'URGENT']);
+      _priority = TaskPriority.medium;
+      _tags.clear();
     });
   }
 
@@ -155,7 +230,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TraceAppBar(showBackButton: true),
+      appBar: const TraceAppBar(showBackButton: true, subtitle: 'New Task'),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -166,22 +241,11 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
             120,
           ),
           children: [
-            Text(
-              'PROCESS / TASK.05',
-              style: TraceTypography.labelMMMono.copyWith(
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: TraceSpacing.xs),
-            Text('New Task', style: TraceTypography.headlineMd),
-            const SizedBox(height: TraceSpacing.lg),
-            _SectionLabel('Task Identity'),
-            const SizedBox(height: TraceSpacing.xs),
             TextFormField(
               controller: _nameController,
               style: TraceTypography.headlineSm,
               decoration: const InputDecoration(
-                hintText: 'Task Name...',
+                hintText: 'Task name',
                 filled: false,
                 contentPadding: EdgeInsets.symmetric(vertical: TraceSpacing.md),
                 enabledBorder: UnderlineInputBorder(
@@ -203,51 +267,53 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               children: [
                 Expanded(
                   child: _DateTile(
-                    label: 'Start Time (Opt)',
+                    label: 'Start Time',
                     value: _formatDateTime(_startTime),
-                    emphasized: false,
                     onTap: () => _pickDateTime(deadline: false),
                   ),
                 ),
                 const SizedBox(width: TraceSpacing.md),
                 Expanded(
                   child: _DateTile(
-                    label: 'Deadline (Req)*',
+                    label: 'Deadline *',
                     value: _formatDateTime(_deadline),
-                    emphasized: true,
                     onTap: () => _pickDateTime(deadline: true),
                   ),
                 ),
               ],
             ),
+            Padding(
+              padding: const EdgeInsets.only(top: TraceSpacing.xs),
+              child: Text(
+                'Optional • Starts now if empty',
+                style: TraceTypography.labelSMono.copyWith(
+                  color: TraceColors.secondary,
+                ),
+              ),
+            ),
             const SizedBox(height: TraceSpacing.lg),
-            _SectionLabel('Description / Context'),
-            const SizedBox(height: TraceSpacing.xs),
             TextFormField(
               controller: _descriptionController,
               minLines: 5,
               maxLines: 7,
               decoration: const InputDecoration(
-                hintText: 'Type / to use templates or enter details...',
+                hintText: 'Add details, notes, or context...',
+              ),
+            ),
+            const SizedBox(height: TraceSpacing.lg),
+            Text(
+              'Project',
+              style: TraceTypography.labelMMMono.copyWith(
+                color: TraceColors.secondary,
               ),
             ),
             const SizedBox(height: TraceSpacing.xs),
-            Row(
-              children: [
-                const Icon(Icons.notes, size: 14, color: TraceColors.secondary),
-                const SizedBox(width: TraceSpacing.xs),
-                Text(
-                  'MARKDOWN COMPATIBLE',
-                  style: TraceTypography.labelSMono,
-                ),
-              ],
-            ),
-            const SizedBox(height: TraceSpacing.lg),
-            _SectionLabel('Project'),
-            const SizedBox(height: TraceSpacing.xs),
             DropdownButtonFormField<String>(
-              initialValue: _selectedProject,
-              items: TaskConstants.projects
+              key: ValueKey('project-$_selectedProject-${_projects.length}'),
+              initialValue: _projects.contains(_selectedProject)
+                  ? _selectedProject
+                  : _projects.first,
+              items: _projects
                   .map(
                     (project) => DropdownMenuItem<String>(
                       value: project,
@@ -261,8 +327,20 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 }
               },
             ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _createProject,
+                child: const Text('Create New Project'),
+              ),
+            ),
             const SizedBox(height: TraceSpacing.lg),
-            _SectionLabel('Priority'),
+            Text(
+              'Priority',
+              style: TraceTypography.labelMMMono.copyWith(
+                color: TraceColors.secondary,
+              ),
+            ),
             const SizedBox(height: TraceSpacing.xs),
             Row(
               children: TaskPriority.values.map((priority) {
@@ -275,8 +353,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       style: OutlinedButton.styleFrom(
                         backgroundColor:
                             selected ? TraceColors.primary : Colors.transparent,
-                        foregroundColor:
-                            selected ? TraceColors.onPrimary : TraceColors.secondary,
+                        foregroundColor: selected
+                            ? TraceColors.onPrimary
+                            : TraceColors.secondary,
                         side: BorderSide(
                           color: selected
                               ? TraceColors.primary
@@ -300,51 +379,43 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               }).toList(),
             ),
             const SizedBox(height: TraceSpacing.lg),
-            _SectionLabel('Classification Tags'),
-            const SizedBox(height: TraceSpacing.xs),
-            Container(
-              padding: const EdgeInsets.all(TraceSpacing.sm),
-              decoration: BoxDecoration(
-                color: TraceColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
-                border: Border.all(
-                  color: TraceColors.outlineVariant,
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: Wrap(
-                spacing: TraceSpacing.xs,
-                runSpacing: TraceSpacing.xs,
-                children: [
-                  ..._tags.map(
-                    (tag) => TraceTaskChip(
-                      label: '#$tag',
-                      textColor: TraceColors.primary,
-                      backgroundColor: TraceColors.surfaceContainerLow,
-                      borderColor: TraceColors.outlineVariant,
-                    ),
-                  ),
-                ],
+            Text(
+              'Tags',
+              style: TraceTypography.labelMMMono.copyWith(
+                color: TraceColors.secondary,
               ),
             ),
-            const SizedBox(height: TraceSpacing.sm),
+            const SizedBox(height: TraceSpacing.xs),
+            if (_knownTags.isNotEmpty) ...[
+              Wrap(
+                spacing: TraceSpacing.xs,
+                runSpacing: TraceSpacing.xs,
+                children: _knownTags
+                    .where((tag) => !_tags.contains(tag))
+                    .map(
+                      (tag) => ActionChip(
+                        label: Text('#$tag'),
+                        onPressed: () => _addTag(tag),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: TraceSpacing.sm),
+            ],
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _tagsController,
-                    style: TraceTypography.labelMMMono.copyWith(
-                      color: TraceColors.primary,
-                    ),
                     decoration: const InputDecoration(
-                      hintText: '+ ADD TAG',
+                      hintText: 'Add tag',
                     ),
                     onSubmitted: (_) => _addTag(),
                   ),
                 ),
                 const SizedBox(width: TraceSpacing.sm),
                 IconButton(
-                  onPressed: _addTag,
+                  onPressed: () => _addTag(),
                   icon: const Icon(Icons.add, color: TraceColors.primary),
                 ),
               ],
@@ -356,10 +427,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 runSpacing: TraceSpacing.xs,
                 children: _tags
                     .map(
-                      (tag) => ActionChip(
+                      (tag) => InputChip(
                         label: Text('#$tag'),
-                        onPressed: () => _removeTag(tag),
-                        avatar: const Icon(Icons.close, size: 14),
+                        onDeleted: () => _removeTag(tag),
                       ),
                     )
                     .toList(),
@@ -386,34 +456,15 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: TraceTypography.labelMMMono.copyWith(
-        color: TraceColors.secondary,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-}
-
 class _DateTile extends StatelessWidget {
   const _DateTile({
     required this.label,
     required this.value,
-    required this.emphasized,
     required this.onTap,
   });
 
   final String label;
   final String value;
-  final bool emphasized;
   final VoidCallback onTap;
 
   @override
@@ -422,10 +473,10 @@ class _DateTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
+          label,
           style: TraceTypography.labelMMMono.copyWith(
-            color: emphasized ? TraceColors.primary : TraceColors.secondary,
-            fontWeight: emphasized ? FontWeight.w600 : FontWeight.w500,
+            color: TraceColors.primary,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: TraceSpacing.xs),
@@ -436,12 +487,8 @@ class _DateTile extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(TraceSpacing.sm),
             decoration: BoxDecoration(
-              color: emphasized
-                  ? TraceColors.surfaceContainerLowest
-                  : TraceColors.surfaceContainerLow,
-              border: Border.all(
-                color: emphasized ? TraceColors.primary : TraceColors.outlineVariant,
-              ),
+              color: TraceColors.surfaceContainerLowest,
+              border: Border.all(color: TraceColors.outlineVariant),
               borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
             ),
             child: Text(

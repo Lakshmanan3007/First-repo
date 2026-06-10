@@ -9,8 +9,10 @@ abstract final class TraceSpacing {
   static const double gutter = 16;
   static const double marginMobile = 16;
   static const double containerPadding = 20;
-  static const double radiusSm = 2;
-  static const double radiusDefault = 4;
-  static const double radiusLg = 8;
-  static const double radiusXl = 12;
+  static const double radiusSm = 4;
+  static const double radiusDefault = 8;
+  static const double radiusMd = 10;
+  static const double radiusLg = 12;
+  static const double radiusXl = 16;
+  static const double radius2Xl = 20;
 }

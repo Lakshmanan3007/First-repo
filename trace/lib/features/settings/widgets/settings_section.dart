@@ -21,8 +21,12 @@ class SettingsSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: TraceColors.surfaceContainerLowest,
-        border: Border.all(color: TraceColors.surfaceContainer),
+        borderRadius: BorderRadius.circular(TraceSpacing.radiusLg),
+        border: Border.all(
+          color: TraceColors.surfaceContainer.withValues(alpha: 0.9),
+        ),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

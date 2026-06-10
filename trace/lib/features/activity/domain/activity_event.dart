@@ -1,10 +1,8 @@
 enum ActivityEventKind {
   taskCompleted,
   taskFailed,
-  taskCreated,
-  batchCreated,
-  deepWorkActive,
-  daySummary,
+  becameActive,
+  reattempted,
 }
 
 class ActivityEvent {
@@ -14,12 +12,7 @@ class ActivityEvent {
     required this.kind,
     required this.title,
     this.body,
-    this.tags = const [],
-    this.batchTaskNames = const [],
     this.taskId,
-    this.summarySegments,
-    this.summaryDuration,
-    this.isPrimary = false,
   });
 
   final String id;
@@ -27,52 +20,82 @@ class ActivityEvent {
   final ActivityEventKind kind;
   final String title;
   final String? body;
-  final List<String> tags;
-  final List<String> batchTaskNames;
   final String? taskId;
-  final int? summarySegments;
-  final Duration? summaryDuration;
-  final bool isPrimary;
+
+  String get label => switch (kind) {
+        ActivityEventKind.taskCompleted => 'Completed',
+        ActivityEventKind.taskFailed => 'Failed',
+        ActivityEventKind.becameActive => 'Became Active',
+        ActivityEventKind.reattempted => 'Reattempted',
+      };
+
+  String get iconGlyph => switch (kind) {
+        ActivityEventKind.taskCompleted => '✓',
+        ActivityEventKind.taskFailed => '✕',
+        ActivityEventKind.becameActive => '→',
+        ActivityEventKind.reattempted => '⟳',
+      };
 }
 
-class ActivityDayGroup {
-  const ActivityDayGroup({
-    required this.day,
-    required this.isToday,
+class ActivityTimelinePeriod {
+  const ActivityTimelinePeriod({
+    required this.label,
     required this.events,
   });
 
-  final DateTime day;
-  final bool isToday;
+  final String label;
   final List<ActivityEvent> events;
+
+  bool get isEmpty => events.isEmpty;
 }
 
-class ActivityMetrics7d {
-  const ActivityMetrics7d({
-    required this.loadJobs,
-    required this.healthPercent,
-    required this.uptimeHours,
-    required this.syncOk,
+class ActivityTodaySummary {
+  const ActivityTodaySummary({
+    required this.currentCount,
+    required this.completedToday,
+    required this.failedToday,
+    required this.upcomingToday,
   });
 
-  final int loadJobs;
-  final int healthPercent;
-  final int uptimeHours;
-  final bool syncOk;
+  final int currentCount;
+  final int completedToday;
+  final int failedToday;
+  final int upcomingToday;
+
+  bool get isEmpty =>
+      currentCount == 0 &&
+      completedToday == 0 &&
+      failedToday == 0 &&
+      upcomingToday == 0;
+}
+
+class ActivityTransition {
+  const ActivityTransition({
+    required this.taskId,
+    required this.taskName,
+    required this.at,
+    required this.label,
+  });
+
+  final String taskId;
+  final String taskName;
+  final DateTime at;
+  final String label;
 }
 
 class ActivityJournal {
   const ActivityJournal({
-    required this.sessionId,
-    required this.versionLabel,
-    required this.metrics,
-    required this.dayGroups,
+    required this.summary,
+    required this.timeline,
+    required this.upcomingTransitions,
   });
 
-  final String sessionId;
-  final String versionLabel;
-  final ActivityMetrics7d metrics;
-  final List<ActivityDayGroup> dayGroups;
+  final ActivityTodaySummary summary;
+  final List<ActivityTimelinePeriod> timeline;
+  final List<ActivityTransition> upcomingTransitions;
 
-  bool get isEmpty => dayGroups.every((group) => group.events.isEmpty);
+  bool get isEmpty =>
+      summary.isEmpty &&
+      timeline.every((period) => period.isEmpty) &&
+      upcomingTransitions.isEmpty;
 }

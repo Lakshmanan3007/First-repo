@@ -1,36 +1,36 @@
 class NotificationPreferences {
   const NotificationPreferences({
     required this.pushEnabled,
-    required this.emailDigests,
-    required this.deadlineWarningMinutes,
-    required this.deadlineCriticalMinutes,
+    this.taskActivatedSilent = true,
+    this.oneHourRemainingMinutes = 60,
+    this.tenMinutesRemainingMinutes = 10,
   });
 
   final bool pushEnabled;
-  final bool emailDigests;
-  final int deadlineWarningMinutes;
-  final int deadlineCriticalMinutes;
+  final bool taskActivatedSilent;
+  final int oneHourRemainingMinutes;
+  final int tenMinutesRemainingMinutes;
 
   static const defaults = NotificationPreferences(
     pushEnabled: true,
-    emailDigests: false,
-    deadlineWarningMinutes: 60,
-    deadlineCriticalMinutes: 10,
+    taskActivatedSilent: true,
+    oneHourRemainingMinutes: 60,
+    tenMinutesRemainingMinutes: 10,
   );
 
   NotificationPreferences copyWith({
     bool? pushEnabled,
-    bool? emailDigests,
-    int? deadlineWarningMinutes,
-    int? deadlineCriticalMinutes,
+    bool? taskActivatedSilent,
+    int? oneHourRemainingMinutes,
+    int? tenMinutesRemainingMinutes,
   }) {
     return NotificationPreferences(
       pushEnabled: pushEnabled ?? this.pushEnabled,
-      emailDigests: emailDigests ?? this.emailDigests,
-      deadlineWarningMinutes:
-          deadlineWarningMinutes ?? this.deadlineWarningMinutes,
-      deadlineCriticalMinutes:
-          deadlineCriticalMinutes ?? this.deadlineCriticalMinutes,
+      taskActivatedSilent: taskActivatedSilent ?? this.taskActivatedSilent,
+      oneHourRemainingMinutes:
+          oneHourRemainingMinutes ?? this.oneHourRemainingMinutes,
+      tenMinutesRemainingMinutes:
+          tenMinutesRemainingMinutes ?? this.tenMinutesRemainingMinutes,
     );
   }
 }

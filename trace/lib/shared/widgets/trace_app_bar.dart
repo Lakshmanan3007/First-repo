@@ -8,21 +8,23 @@ class TraceAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TraceAppBar({
     super.key,
     this.showBackButton = false,
-    this.onMenuPressed,
     this.onBackPressed,
+    this.onProfilePressed,
+    this.subtitle,
   });
 
   final bool showBackButton;
-  final VoidCallback? onMenuPressed;
   final VoidCallback? onBackPressed;
+  final VoidCallback? onProfilePressed;
+  final String? subtitle;
 
   @override
-  Size get preferredSize => const Size.fromHeight(56);
+  Size get preferredSize => Size.fromHeight(subtitle == null ? 56 : 64);
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: TraceColors.background.withValues(alpha: 0.8),
+      color: TraceColors.background.withValues(alpha: 0.92),
       child: Container(
         decoration: const BoxDecoration(
           border: Border(
@@ -46,33 +48,71 @@ class TraceAppBar extends StatelessWidget implements PreferredSizeWidget {
                     constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                   )
                 else
-                  IconButton(
-                    onPressed: onMenuPressed,
-                    icon: const Icon(Icons.menu, color: TraceColors.primary),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'TRACE',
+                          style: TraceTypography.headlineSm.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: TraceTypography.labelMd.copyWith(
+                              color: TraceColors.secondary,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                if (!showBackButton) const SizedBox(width: TraceSpacing.sm),
-                Text(
-                  'TRACE',
-                  style: TraceTypography.headlineSm.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
+                if (showBackButton) ...[
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'TRACE',
+                          style: TraceTypography.headlineSm.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: TraceTypography.labelMd.copyWith(
+                              color: TraceColors.secondary,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: TraceColors.surfaceContainerHighest,
-                    border: Border.all(color: TraceColors.outlineVariant),
-                  ),
-                  child: const Icon(
-                    Icons.person_outline,
-                    size: 18,
-                    color: TraceColors.secondary,
+                ],
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onProfilePressed,
+                    customBorder: const CircleBorder(),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: TraceColors.surfaceContainerHighest,
+                        border: Border.all(color: TraceColors.outlineVariant),
+                      ),
+                      child: const Icon(
+                        Icons.person_outline,
+                        size: 18,
+                        color: TraceColors.secondary,
+                      ),
+                    ),
                   ),
                 ),
               ],

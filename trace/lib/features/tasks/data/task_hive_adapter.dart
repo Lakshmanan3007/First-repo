@@ -23,6 +23,8 @@ class TaskAdapter extends TypeAdapter<Task> {
     var createdAt = DateTime.now();
     DateTime? completedAt;
     DateTime? failedAt;
+    String? completionNote;
+    String? failureNote;
 
     for (var i = 0; i < fieldCount; i++) {
       switch (reader.readByte()) {
@@ -62,6 +64,12 @@ class TaskAdapter extends TypeAdapter<Task> {
         case 11:
           failedAt = reader.readBool() ? DateTime.fromMillisecondsSinceEpoch(reader.readInt()) : null;
           break;
+        case 12:
+          completionNote = reader.readBool() ? reader.readString() : null;
+          break;
+        case 13:
+          failureNote = reader.readBool() ? reader.readString() : null;
+          break;
       }
     }
 
@@ -78,12 +86,14 @@ class TaskAdapter extends TypeAdapter<Task> {
       createdAt: createdAt,
       completedAt: completedAt,
       failedAt: failedAt,
+      completionNote: completionNote,
+      failureNote: failureNote,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
-    writer.writeByte(12);
+    writer.writeByte(14);
     writer.writeByte(0);
     writer.writeString(obj.id);
     writer.writeByte(1);
@@ -118,5 +128,11 @@ class TaskAdapter extends TypeAdapter<Task> {
     if (obj.failedAt != null) {
       writer.writeInt(obj.failedAt!.millisecondsSinceEpoch);
     }
+    writer.writeByte(12);
+    writer.writeBool(obj.completionNote != null);
+    if (obj.completionNote != null) writer.writeString(obj.completionNote!);
+    writer.writeByte(13);
+    writer.writeBool(obj.failureNote != null);
+    if (obj.failureNote != null) writer.writeString(obj.failureNote!);
   }
 }

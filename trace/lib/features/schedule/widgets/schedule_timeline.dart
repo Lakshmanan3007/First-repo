@@ -31,16 +31,37 @@ class ScheduleTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final children = <Widget>[];
 
-    if (plan.archived.isNotEmpty) {
-      final headerTime = _formatSectionTime(
-        SchedulePlanner.archiveTimestamp(plan.archived.first)!,
-      );
+    // Render time-based sections
+    for (final section in plan.timeSections) {
+      if (section.tasks.isNotEmpty) {
+        children.add(
+          _TimelineSection(
+            style: _TimelineNodeStyle.upcoming,
+            header: section.label,
+            headerColor: TraceColors.primary,
+            children: section.tasks
+                .map(
+                  (task) => ScheduleTaskTile(
+                    task: task,
+                    variant: ScheduleTileVariant.active,
+                    onTap: () => onTaskTap(task),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      }
+    }
+
+    // Render completed tasks section
+    if (plan.completed.isNotEmpty) {
+      final headerTime = _formatSectionTime(plan.completed.first.completedAt ?? DateTime.now());
       children.add(
         _TimelineSection(
           style: _TimelineNodeStyle.archived,
-          header: 'Archived / $headerTime',
+          header: 'Completed / $headerTime',
           headerColor: TraceColors.secondary,
-          children: plan.archived
+          children: plan.completed
               .map(
                 (task) => ScheduleTaskTile(
                   task: task,
@@ -53,38 +74,19 @@ class ScheduleTimeline extends StatelessWidget {
       );
     }
 
-    if (plan.inFocus.isNotEmpty) {
+    // Render failed tasks section
+    if (plan.failed.isNotEmpty) {
+      final headerTime = _formatSectionTime(plan.failed.first.failedAt ?? DateTime.now());
       children.add(
         _TimelineSection(
-          style: _TimelineNodeStyle.active,
-          header: 'In Focus / Now',
-          headerColor: TraceColors.primary,
-          headerBold: true,
-          children: plan.inFocus
+          style: _TimelineNodeStyle.archived,
+          header: 'Failed / $headerTime',
+          headerColor: TraceColors.error,
+          children: plan.failed
               .map(
                 (task) => ScheduleTaskTile(
                   task: task,
-                  variant: ScheduleTileVariant.active,
-                  onTap: () => onTaskTap(task),
-                ),
-              )
-              .toList(),
-        ),
-      );
-    }
-
-    if (plan.queue.isNotEmpty) {
-      final lead = SchedulePlanner.effectiveStart(plan.queue.first);
-      children.add(
-        _TimelineSection(
-          style: _TimelineNodeStyle.upcoming,
-          header: 'Queue / ${_formatSectionTime(lead)}',
-          headerColor: TraceColors.secondary,
-          children: plan.queue
-              .map(
-                (task) => ScheduleTaskTile(
-                  task: task,
-                  variant: ScheduleTileVariant.upcoming,
+                  variant: ScheduleTileVariant.archived,
                   onTap: () => onTaskTap(task),
                 ),
               )

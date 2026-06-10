@@ -21,7 +21,7 @@ abstract final class TaskLifecycle {
       return TaskStatus.failed;
     }
 
-    if (startTime != null && !startTime.isAfter(now)) {
+    if (startTime == null || !startTime.isAfter(now)) {
       return TaskStatus.current;
     }
 
@@ -32,7 +32,7 @@ abstract final class TaskLifecycle {
     final effectiveNow = now ?? DateTime.now();
     final nextStatus = resolveForNow(
       currentStatus: task.status,
-      startTime: task.startTime,
+      startTime: task.startTime ?? task.createdAt,
       deadline: task.deadline,
       now: effectiveNow,
     );

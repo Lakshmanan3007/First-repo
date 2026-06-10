@@ -29,26 +29,65 @@ class TaskRepository {
     return getAll().where((task) => task.status == status).toList();
   }
 
+  Map<TaskStatus, int> countByStatus() {
+    final counts = {
+      for (final status in TaskStatus.values) status: 0,
+    };
+    for (final task in _box.values) {
+      counts[task.status] = (counts[task.status] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  List<String> distinctProjects({TaskStatus? status}) {
+    final tasks = status == null ? getAll() : getByStatus(status);
+    final projects = tasks.map((task) => task.project).toSet().toList()
+      ..sort();
+    return projects;
+  }
+
+  List<String> distinctTags({TaskStatus? status}) {
+    final tasks = status == null ? getAll() : getByStatus(status);
+    final tags = <String>{};
+    for (final task in tasks) {
+      tags.addAll(task.tags);
+    }
+    return tags.toList()..sort();
+  }
+
   List<Task> search({
     required TaskStatus status,
     String query = '',
+    String? projectFilter,
+    String? tagFilter,
   }) {
     final normalized = query.trim().toLowerCase();
-    final tasks = getByStatus(status);
+    var tasks = getByStatus(status);
 
-    if (normalized.isEmpty) return _sortForTab(status, tasks);
+    if (projectFilter != null && projectFilter.isNotEmpty) {
+      tasks = tasks.where((task) => task.project == projectFilter).toList();
+    }
 
-    final filtered = tasks.where((task) {
-      final haystack = [
-        task.name,
-        task.description ?? '',
-        task.project,
-        ...task.tags,
-      ].join(' ').toLowerCase();
-      return haystack.contains(normalized);
-    }).toList();
+    if (tagFilter != null && tagFilter.isNotEmpty) {
+      final normalizedTag = tagFilter.toUpperCase();
+      tasks = tasks
+          .where((task) => task.tags.contains(normalizedTag))
+          .toList();
+    }
 
-    return _sortForTab(status, filtered);
+    if (normalized.isNotEmpty) {
+      tasks = tasks.where((task) {
+        final haystack = [
+          task.name,
+          task.description ?? '',
+          task.project,
+          ...task.tags,
+        ].join(' ').toLowerCase();
+        return haystack.contains(normalized);
+      }).toList();
+    }
+
+    return _sortForTab(status, tasks);
   }
 
   List<Task> _sortForTab(TaskStatus status, List<Task> tasks) {
@@ -62,8 +101,17 @@ class TaskRepository {
           return aStart.compareTo(bStart);
         });
       case TaskStatus.completed:
+        tasks.sort((a, b) {
+          final aDate = a.completedAt ?? a.createdAt;
+          final bDate = b.completedAt ?? b.createdAt;
+          return bDate.compareTo(aDate);
+        });
       case TaskStatus.failed:
-        tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        tasks.sort((a, b) {
+          final aDate = a.failedAt ?? a.createdAt;
+          final bDate = b.failedAt ?? b.createdAt;
+          return bDate.compareTo(aDate);
+        });
     }
     return tasks;
   }
@@ -107,7 +155,7 @@ class TaskRepository {
     await _box.put(task.id, task);
   }
 
-  Future<Task> markCompleted(String id) async {
+  Future<Task> markCompleted(String id, {String? note}) async {
     final task = _box.get(id);
     if (task == null) {
       throw StateError('Task not found');
@@ -115,15 +163,18 @@ class TaskRepository {
     if (task.status == TaskStatus.completed) return task;
 
     final now = DateTime.now();
+    final trimmed = note?.trim();
     final updated = task.copyWith(
       status: TaskStatus.completed,
       completedAt: now,
+      completionNote:
+          (trimmed == null || trimmed.isEmpty) ? null : trimmed,
     );
     await save(updated);
     return updated;
   }
 
-  Future<Task> markFailed(String id) async {
+  Future<Task> markFailed(String id, {String? note}) async {
     final task = _box.get(id);
     if (task == null) {
       throw StateError('Task not found');
@@ -133,9 +184,11 @@ class TaskRepository {
     }
 
     final now = DateTime.now();
+    final trimmed = note?.trim();
     final updated = task.copyWith(
       status: TaskStatus.failed,
       failedAt: now,
+      failureNote: (trimmed == null || trimmed.isEmpty) ? null : trimmed,
     );
     await save(updated);
     return updated;

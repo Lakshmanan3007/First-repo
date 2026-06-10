@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import 'task_constants.dart';
 import 'task_priority.dart';
 import 'task_status.dart';
 
@@ -17,6 +18,8 @@ class Task {
     this.startTime,
     this.completedAt,
     this.failedAt,
+    this.completionNote,
+    this.failureNote,
   });
 
   final String id;
@@ -31,18 +34,26 @@ class Task {
   final DateTime createdAt;
   final DateTime? completedAt;
   final DateTime? failedAt;
+  final String? completionNote;
+  final String? failureNote;
+
+  String? get outcomeNote =>
+      status == TaskStatus.completed ? completionNote : failureNote;
 
   String get entryId => id.replaceAll('-', '').substring(0, 8).toUpperCase();
 
   bool get isArchived =>
       status == TaskStatus.completed || status == TaskStatus.failed;
 
+  /// When [startTime] is unset, the task begins at creation time.
+  DateTime get effectiveStartTime => startTime ?? createdAt;
+
   factory Task.create({
     required String name,
     required DateTime deadline,
     String? description,
     DateTime? startTime,
-    String project = 'General Work',
+    String project = TaskConstants.defaultProject,
     TaskPriority priority = TaskPriority.medium,
     List<String> tags = const [],
   }) {
@@ -69,7 +80,8 @@ class Task {
     if (deadline.isBefore(now)) {
       return TaskStatus.failed;
     }
-    if (startTime != null && !startTime.isAfter(now)) {
+    final effectiveStart = startTime ?? now;
+    if (!effectiveStart.isAfter(now)) {
       return TaskStatus.current;
     }
     return TaskStatus.upcoming;
@@ -86,8 +98,12 @@ class Task {
     TaskStatus? status,
     DateTime? completedAt,
     DateTime? failedAt,
+    String? completionNote,
+    String? failureNote,
     bool clearCompletedAt = false,
     bool clearFailedAt = false,
+    bool clearCompletionNote = false,
+    bool clearFailureNote = false,
   }) {
     return Task(
       id: id,
@@ -102,6 +118,9 @@ class Task {
       createdAt: createdAt,
       completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
       failedAt: clearFailedAt ? null : (failedAt ?? this.failedAt),
+      completionNote:
+          clearCompletionNote ? null : (completionNote ?? this.completionNote),
+      failureNote: clearFailureNote ? null : (failureNote ?? this.failureNote),
     );
   }
 }
